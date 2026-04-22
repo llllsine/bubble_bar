@@ -25,6 +25,14 @@
         "backgroundColor": "#0D0A1F"
       }
     },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "name": "Bubble Bar",
+      "lang": "zh-CN",
+      "themeColor": "#0D0A1F",
+      "backgroundColor": "#0D0A1F"
+    },
     "plugins": [
       "expo-router"
     ],
