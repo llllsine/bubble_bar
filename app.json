@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Bubble Bar",
+    "slug": "bubble-bar",
+    "version": "1.0.0",
+    "scheme": "bubblebar",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0A1F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.llllsine.bubblebar",
+      "infoPlist": {
+        "NSMotionUsageDescription": "用于气泡重力感应漂浮效果"
+      }
+    },
+    "android": {
+      "package": "com.llllsine.bubblebar",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D0A1F"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "3c12364a-2282-41df-9322-011f3068d248"
+      }
+    },
+    "owner": "llllsine"
+  }
+}
