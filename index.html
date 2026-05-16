@@ -262,6 +262,31 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 #mascot.show{transform:translateY(0) scale(1);opacity:1;}
 .m-e{font-size:30px;}.m-n{font-size:11px;color:var(--dim);font-weight:600;margin-bottom:3px;}.m-t{font-size:13px;line-height:1.5;}
 .sloth-q{font-style:italic;font-size:13px;color:#C9A84C;line-height:1.6;background:rgba(201,168,76,.08);border-left:2px solid rgba(201,168,76,.5);padding:10px 14px;border-radius:0 10px 10px 0;margin:14px 0 18px;}
+
+/* SETTINGS BUTTON & NICK TAG */
+.header-right{display:flex;align-items:center;gap:7px;}
+.nick-tag{font-size:11px;font-weight:700;color:rgba(255,255,255,.62);padding:4px 9px;
+  border:1px solid rgba(255,255,255,.13);border-radius:8px;cursor:pointer;
+  background:rgba(255,255,255,.05);backdrop-filter:blur(10px);transition:all .2s;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nick-tag:hover{color:#fff;border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.12);}
+.settings-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);border-radius:10px;
+  padding:5px 9px;color:rgba(255,255,255,.55);font-size:16px;cursor:pointer;
+  backdrop-filter:blur(10px);transition:all .2s;line-height:1;}
+.settings-btn:hover{background:rgba(168,85,247,.18);border-color:rgba(168,85,247,.5);color:#fff;}
+
+/* REMINDER CHIPS */
+.rem-row{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 4px;}
+.rem-chip{padding:6px 11px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:var(--dim);
+  transition:all .2s;white-space:nowrap;}
+.rem-chip:hover{background:rgba(168,85,247,.2);border-color:rgba(168,85,247,.5);color:#fff;}
+.rem-chip.has{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.45);color:#6effd4;cursor:default;}
+.rem-chip.del-rem{background:rgba(255,80,100,.1);border-color:rgba(255,80,100,.3);color:#ff8fa0;cursor:pointer;}
+.rem-chip.del-rem:hover{background:rgba(255,80,100,.2);}
+
+/* IDLE TAUNT — mascot variant for taunts */
+#mascot.taunt{border-color:rgba(201,168,76,.35);}
+#mascot.taunt .m-t{color:#fde68a;}
 </style>
 </head>
 <body>
@@ -272,9 +297,13 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <div id="screen-dashboard" class="screen active">
     <div class="header">
       <div class="logo">✦ Bubble Bar</div>
-      <div class="mode-pill">
-        <button class="mode-btn active" id="btn-pan" onclick="setPanorama()">全景</button>
-        <button class="mode-btn" id="btn-foc" onclick="openFocusSelect()">专注</button>
+      <div class="header-right">
+        <div class="nick-tag" id="nick-tag" onclick="openSettings()" style="display:none"></div>
+        <button class="settings-btn" onclick="openSettings()">⚙</button>
+        <div class="mode-pill">
+          <button class="mode-btn active" id="btn-pan" onclick="setPanorama()">全景</button>
+          <button class="mode-btn" id="btn-foc" onclick="openFocusSelect()">专注</button>
+        </div>
       </div>
     </div>
     <div id="bubble-stage">
@@ -329,7 +358,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <div class="sheet-title" id="ms-title"></div>
   <div class="sheet-sub">AI 拆解 · 5–10 分钟微动作</div>
   <div id="ms-actions"></div>
-  <div style="margin-top:14px">
+  <div class="ai-lbl" style="margin-top:14px">⏰ 定时提醒</div>
+  <div class="rem-row" id="ms-reminders"></div>
+  <div style="margin-top:12px">
     <button class="g-btn ok" id="ms-complete" style="display:none" onclick="completeFromMicro()">✦ 标记为完成 · 晶体化</button>
     <button class="g-btn" onclick="closeSheet()">关闭</button>
   </div>
@@ -395,6 +426,21 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <button class="g-btn" onclick="closeSheet()">取消</button>
 </div>
 
+<!-- Settings Sheet -->
+<div class="sheet" id="settings-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">⚙ 个人设置</div>
+  <div class="sheet-sub">让 Bubble Bar 更了解你</div>
+  <div class="ai-lbl">你的昵称</div>
+  <input class="ai-ti" id="nick-input" placeholder="输入昵称（如：小明、打工人、研究僧）" maxlength="10"/>
+  <div style="font-size:12px;color:var(--dim);margin:8px 0 20px;line-height:1.6">设置后，提醒和催促会叫你名字，不那么生硬 ✨</div>
+  <div class="ai-lbl">推送通知</div>
+  <button class="g-btn" id="notif-perm-btn" onclick="reqNotifPerm()" style="margin-bottom:6px">🔔 开启定时提醒通知</button>
+  <div id="notif-status" style="font-size:11px;color:var(--dim);margin-bottom:14px;text-align:center"></div>
+  <button class="g-btn pri" onclick="saveSettings()">✓ 保存</button>
+  <button class="g-btn" onclick="closeSheet()">取消</button>
+</div>
+
 <!-- Mascot -->
 <div id="mascot">
   <div class="m-e" id="m-e">🦅</div>
@@ -426,10 +472,21 @@ let mode='panorama', focusIDs=[], selId=null, recId=null, lpId=null;
 let pending={}, focusPick=[];
 // Gallery filter state
 let galView='time', galTimePeriod='week', galCatFilter='';
+// User profile
+let userNick=localStorage.getItem('bb_nick')||'';
+// Activity tracking for idle taunt (timestamp ms)
+let lastActAt=parseInt(localStorage.getItem('bb_lastact')||Date.now());
+// Reminder timers keyed by task id
+const remTimers={};
+
 const save=()=>localStorage.setItem('bb',JSON.stringify(tasks));
+const saveNick=()=>localStorage.setItem('bb_nick',userNick);
+const touchAct=()=>{lastActAt=Date.now();localStorage.setItem('bb_lastact',lastActAt);};
 let _n=Date.now(); const uid=()=>(++_n).toString(36);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const rad=imp=>R.min+((imp-1)/4)*(R.max-R.min);
+// Returns user's name or fallback pronoun
+const me=()=>userNick||'你';
 
 /* urgencyColor: urgency 5=最紧急→红, urgency 1=最远期→蓝 */
 const urgColor=u=>UC[Math.max(0,Math.min(4,5-(u??3)))];
@@ -468,31 +525,93 @@ function genActs(title){
 const GK='sk-d5a452808cd741f09ec2140f99999096';
 
 async function aiDecompose(title,category){
-  const prompt=`你是 ADHD 友好任务教练。请针对以下这个具体任务进行个性化拆解，每个步骤必须与该任务本身直接相关，绝对不要使用适用于任何任务的通用模板（如"打开文件""设置计时器"等与任务无关的步骤）。
+  const systemPrompt=`你是一个高级任务拆解与时间规划 AI，专为 ADHD 用户设计。
 
-任务：「${title}」（类别：${CN[category]||category}）
+你的目标不是简单生成待办事项，而是：帮助用户将模糊目标转化为可执行、低压力、可完成的行动系统。
 
-要求：
-- 拆解为 5-6 个步骤，每步 5-10 分钟内可完成
-- 每步必须是针对「${title}」这个任务本身的具体行动
-- 语言简洁，使用第二人称，动词开头
-- 符合低启动阻力原则，第一步要极度具体、立刻可开始
+当用户输入一个待办事项后，你必须严格按照以下流程处理：
 
-直接返回 JSON 数组，格式：["步骤1","步骤2",...]，只返回 JSON，不要任何其他文字。`;
+# Step 1：任务识别
+识别用户任务的真实目标。如果任务模糊，需要推断：用户真正想完成什么、最终结果是什么、是否存在隐藏子任务。
+
+# Step 2：任务分类
+必须将任务归类到以下六个维度之一：life（生活）、study（学习）、work（工作）、creative（创意）、recovery（恢复）、reward（奖励）。
+如果涉及多个维度：选择主维度，标记次级维度。
+
+# Step 3：时间评估
+评估：总耗时、单步骤耗时、深度工作时间、浅层操作时间、恢复时间。
+判断：是否适合碎片时间、是否需要连续专注时间、是否适合夜间完成、是否容易拖延。
+
+# Step 4：任务拆解
+将任务拆解为最小可执行步骤，单步骤控制在 5-30 分钟。要求：
+- 每一步必须是针对该具体任务的具体动作，禁止使用通用模板（如"打开文件""设置计时器"等与任务无关的步骤）
+- 每一步必须可以直接执行，避免抽象描述
+- 第一步要极度具体、启动阻力最低，用户读完就能立刻开始
+
+# Step 5：优先级分析
+P0=必须立即完成，P1=高优先级，P2=普通优先级，P3=可延后。
+
+# Step 6：能量与恢复分析
+评估 cognitive_load（认知负荷 1-5）和 energy_cost（综合能耗 1-5）。
+如果任务超过 60 分钟，必须在步骤序列中自动插入恢复步骤（is_recovery:true），如喝水、拉伸、散步、深呼吸。
+
+# Step 7：奖励机制
+任务完成后自动生成奖励建议：成本低、可即时获得、不影响后续执行。
+
+# Step 8：输出结构化 JSON
+只返回 JSON，不要任何其他文字，格式严格如下：
+{
+  "task":{
+    "title":"任务名称",
+    "category":"life|study|work|creative|recovery|reward",
+    "secondary_category":"",
+    "total_time":"预计总时长（如 45分钟）",
+    "cognitive_load":3,
+    "energy_cost":3,
+    "fragmented_ok":false,
+    "delay_risk":"low|medium|high"
+  },
+  "steps":[
+    {
+      "step_id":1,
+      "step_name":"步骤简称（10字内）",
+      "description":"可直接执行的具体动作（25字内）",
+      "estimated_time":"15分钟",
+      "priority":"P0|P1|P2|P3",
+      "is_recovery":false
+    }
+  ],
+  "reward":"完成后的奖励建议（15字内）"
+}`;
 
   const res=await fetch(
     'https://api.deepseek.com/v1/chat/completions',
     {method:'POST',
      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GK},
-     body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',content:prompt}],temperature:0.7,max_tokens:600})}
+     body:JSON.stringify({
+       model:'deepseek-chat',
+       messages:[
+         {role:'system',content:systemPrompt},
+         {role:'user',content:`请分析并拆解以下任务：「${title}」`}
+       ],
+       temperature:0.6,
+       max_tokens:1200,
+       response_format:{type:'json_object'}
+     })}
   );
   if(!res.ok) throw new Error('API '+res.status);
   const data=await res.json();
   const text=data.choices?.[0]?.message?.content||'';
-  const m=text.match(/\[[\s\S]*?\]/);
-  if(m){
-    const arr=JSON.parse(m[0]);
-    return arr.filter(s=>typeof s==='string'&&s.trim()).map(s=>({id:uid(),text:s.trim(),done:false}));
+  // Parse structured JSON
+  const m=text.match(/\{[\s\S]*\}/);
+  if(m){try{return JSON.parse(m[0]);}catch(e){}}
+  // Fallback: try old array format
+  const am=text.match(/\[[\s\S]*?\]/);
+  if(am){
+    try{
+      const arr=JSON.parse(am[0]).filter(s=>typeof s==='string'&&s.trim());
+      if(arr.length) return {steps:arr.map((s,i)=>({step_id:i+1,step_name:s,description:'',priority:'P1',is_recovery:false}))};
+    }catch(e){}
   }
   return null;
 }
@@ -735,8 +854,8 @@ function doComplete(){
   const t=tasks.find(x=>x.id===lpId);if(!t) return;
   const el=document.getElementById('b-'+t.id);
   if(el){el.classList.add('crystallizing');setTimeout(()=>{el.remove();delete phys[t.id];delete depths[t.id];removeGLBubble(t.id);},750);}
-  t.status='completed';t.completedAt=Date.now();save();
-  closeSheet();renderDash();mascot('magpie',`「${t.title}」完成！已收入展柜 🥂`);
+  t.status='completed';t.completedAt=Date.now();cancelReminder(t.id);save();touchAct();
+  closeSheet();renderDash();mascot('magpie',`${userNick?userNick+'，':''}「${t.title}」完成！已收入展柜 🥂`);
 }
 function doBarrel(){
   const t=tasks.find(x=>x.id===lpId);if(!t) return;
@@ -878,14 +997,43 @@ async function triggerAI(){
   const statusEl=document.getElementById('ai-status');
   if(statusEl) statusEl.textContent='· DeepSeek 解析中…';
   document.getElementById('ai-loading').style.display='flex';
+  // Map AI category names → app category keys
+  const catMap={life:'life',study:'academic',work:'work',creative:'creative',recovery:'recovery',reward:'reward'};
   try{
-    const aiActs=await aiDecompose(tx,p.category);
-    if(aiActs&&aiActs.length){
-      pending.microActions=aiActs;renderAIActs();
-      if(statusEl) statusEl.textContent='· AI 已生成';
+    const aiResult=await aiDecompose(tx,p.category);
+    if(aiResult&&aiResult.steps&&aiResult.steps.length){
+      // Convert structured steps to micro-actions
+      pending.microActions=aiResult.steps.map(s=>({
+        id:uid(),
+        text:s.is_recovery
+          ?`⟳ ${s.step_name}`
+          :(s.description&&s.description.trim()&&s.description!==s.step_name
+            ?`${s.step_name}：${s.description}`
+            :s.step_name),
+        done:false
+      }));
+      // Apply AI-derived task properties back to the pending bubble
+      if(aiResult.task){
+        const aiCat=catMap[aiResult.task.category];
+        if(aiCat&&aiCat!==pending.category){
+          pending.category=aiCat;
+          document.querySelectorAll('#ai-cats .cat-chip').forEach(el=>el.classList.toggle('on',el.dataset.c===aiCat));
+        }
+        if(aiResult.task.energy_cost){
+          pending.energyCost=Math.round(Math.max(1,Math.min(5,aiResult.task.energy_cost)));
+          renderEnergy(pending.energyCost);
+        } else if(aiResult.task.cognitive_load){
+          pending.energyCost=Math.round(Math.max(1,Math.min(5,aiResult.task.cognitive_load)));
+          renderEnergy(pending.energyCost);
+        }
+      }
+      // Store reward for post-creation mascot message
+      if(aiResult.reward) pending._reward=aiResult.reward;
+      renderAIActs();
+      if(statusEl) statusEl.textContent=`· AI 已生成 ${pending.microActions.length} 步`;
     } else {if(statusEl) statusEl.textContent='· 使用模板';}
   } catch(e){
-    console.warn('Gemini:',e.message);
+    console.warn('DeepSeek:',e.message);
     if(statusEl) statusEl.textContent='· 使用模板';
   } finally {
     document.getElementById('ai-loading').style.display='none';
@@ -915,10 +1063,12 @@ function confirmAdd(){
   const t={id:uid(),title:pending.title,category:pending.category,urgency:pending.urgency,
     importance:pending.importance,energyCost:pending.energyCost,
     status:'active',microActions:pending.microActions.map(a=>({...a,id:uid()})),createdAt:Date.now()};
-  tasks.push(t);save();closeSheet();renderDash();
+  tasks.push(t);save();touchAct();closeSheet();renderDash();
   const cnt=tasks.filter(x=>x.status==='active').length;
-  if(cnt===1) mascot('magpie','第一个气泡诞生了！移动鼠标可模拟重力漂浮 ✨');
-  else mascot('magpie',`「${t.title}」已拆解为 ${t.microActions.length} 个微动作 🫧`);
+  const rewardHint=pending._reward?` · 完成后：${pending._reward}`:'';
+  const nickPfx=userNick?`${userNick}，`:'';
+  if(cnt===1) mascot('magpie',`${nickPfx}第一个气泡诞生了！移动鼠标模拟重力漂浮 ✨`);
+  else mascot('magpie',`${nickPfx}「${t.title}」已拆解为 ${t.microActions.length} 步${rewardHint} 🫧`);
 }
 
 /* ════════════════════════════════════════
@@ -927,7 +1077,7 @@ function confirmAdd(){
 function openMicro(tid){
   selId=tid;const t=tasks.find(x=>x.id===tid);if(!t) return;
   document.getElementById('ms-title').textContent=t.title;
-  renderMA(t);openSheet('micro-sheet');
+  renderMA(t);renderReminders(tid);openSheet('micro-sheet');
 }
 function renderMA(t){
   const ac=urgColor(t.urgency);
@@ -942,15 +1092,15 @@ function renderMA(t){
 window.toggleAct=function(tid,aid){
   const t=tasks.find(x=>x.id===tid);if(!t) return;
   const a=t.microActions.find(x=>x.id===aid);if(!a) return;
-  a.done=!a.done;save();renderMA(t);
+  a.done=!a.done;save();touchAct();renderMA(t);
   const el=document.getElementById('b-'+tid);if(el) syncContent(el,t);
 };
 function completeFromMicro(){
   const t=tasks.find(x=>x.id===selId);if(!t) return;
   const el=document.getElementById('b-'+t.id);
   if(el){el.classList.add('crystallizing');setTimeout(()=>{el.remove();delete phys[t.id];delete depths[t.id];removeGLBubble(t.id);},750);}
-  t.status='completed';t.completedAt=Date.now();save();
-  closeSheet();renderDash();mascot('magpie',`「${t.title}」完成！已收入展柜 🥂`);
+  t.status='completed';t.completedAt=Date.now();cancelReminder(t.id);save();touchAct();
+  closeSheet();renderDash();mascot('magpie',`${userNick?userNick+'，':''}「${t.title}」完成！已收入展柜 🥂`);
 }
 
 /* ════════════════════════════════════════
@@ -1117,7 +1267,7 @@ function renderGallery(){
 function openSheet(id){document.getElementById('backdrop').classList.add('open');document.getElementById(id).classList.add('open');}
 function closeSheet(){
   document.getElementById('backdrop').classList.remove('open');
-  ['micro-sheet','recall-sheet','lp-sheet','ai-sheet','focus-sheet'].forEach(id=>{
+  ['micro-sheet','recall-sheet','lp-sheet','ai-sheet','focus-sheet','settings-sheet'].forEach(id=>{
     const e=document.getElementById(id);if(e) e.classList.remove('open');
   });
   selId=recId=lpId=null;
@@ -1137,6 +1287,139 @@ document.querySelectorAll('.tab-item').forEach(tab=>{
 });
 
 /* ════════════════════════════════════════
+   SETTINGS — nickname + notifications
+════════════════════════════════════════ */
+function openSettings(){
+  document.getElementById('nick-input').value=userNick;
+  updateNotifStatus();
+  openSheet('settings-sheet');
+}
+function saveSettings(){
+  const v=document.getElementById('nick-input').value.trim().slice(0,10);
+  userNick=v;saveNick();
+  const tag=document.getElementById('nick-tag');
+  if(v){tag.textContent=v;tag.style.display='';}else{tag.style.display='none';}
+  closeSheet();
+  mascot('magpie',v?`好的，以后叫你「${v}」✨`:'好的，以后用"你"称呼你');
+}
+function updateNotifStatus(){
+  const el=document.getElementById('notif-status');
+  const btn=document.getElementById('notif-perm-btn');
+  if(!el||!btn) return;
+  if(!('Notification' in window)){el.textContent='此浏览器不支持通知';return;}
+  if(Notification.permission==='granted'){
+    el.textContent='✅ 通知已开启';btn.style.display='none';
+  } else if(Notification.permission==='denied'){
+    el.textContent='❌ 通知已被禁止，请在浏览器设置中手动开启';btn.style.display='none';
+  } else {
+    el.textContent='开启后，定时提醒会在锁屏/后台推送';btn.style.display='';
+  }
+}
+function reqNotifPerm(){
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(()=>updateNotifStatus());
+}
+
+/* ════════════════════════════════════════
+   REMINDERS — schedule & cancel
+════════════════════════════════════════ */
+function renderReminders(tid){
+  const el=document.getElementById('ms-reminders');if(!el) return;
+  const t=tasks.find(x=>x.id===tid);if(!t) return;
+  const hasRem=t.reminder?.at&&t.reminder.at>Date.now();
+  if(hasRem){
+    const diff=t.reminder.at-Date.now();
+    const label=diff<3600000?`${Math.ceil(diff/60000)} 分钟后`:`${Math.round(diff/3600000)} 小时后`;
+    el.innerHTML=`<div class="rem-chip has">⏰ ${label}提醒你</div>
+      <div class="rem-chip del-rem" onclick="cancelReminder('${tid}');renderReminders('${tid}')">✕ 取消</div>`;
+    return;
+  }
+  const presets=[
+    {l:'30分钟',ms:30*60000},{l:'1小时',ms:60*60000},
+    {l:'2小时',ms:120*60000},{l:'明早9点',ms:nextMorningMs(9)}
+  ];
+  el.innerHTML=presets.map(p=>
+    `<div class="rem-chip" onclick="setTaskReminder('${tid}',${p.ms});renderReminders('${tid}')">⏰ ${p.l}</div>`
+  ).join('');
+}
+function nextMorningMs(hour){
+  const d=new Date();d.setDate(d.getDate()+1);d.setHours(hour,0,0,0);
+  return d.getTime()-Date.now();
+}
+function setTaskReminder(tid,ms){
+  const t=tasks.find(x=>x.id===tid);if(!t||ms<=0) return;
+  cancelReminder(tid);
+  t.reminder={at:Date.now()+ms};save();
+  const fire=()=>{
+    const tk=tasks.find(x=>x.id===tid);
+    if(!tk||tk.status!=='active'){return;}
+    tk.reminder=null;save();
+    const msg=`${me()}，「${tk.title}」的提醒时间到了！该动起来了 ⏰`;
+    if('Notification' in window&&Notification.permission==='granted'){
+      new Notification('✦ Bubble Bar',{body:msg,icon:'assets/icon.png'});
+    }
+    mascot('sloth',msg);
+  };
+  remTimers[tid]=setTimeout(fire,ms);
+  const label=ms<3600000?`${Math.ceil(ms/60000)} 分钟`:`${Math.round(ms/3600000)} 小时`;
+  mascot('magpie',`好的，${label}后提醒${me()}「${t.title}」⏰`);
+}
+function cancelReminder(tid){
+  clearTimeout(remTimers[tid]);delete remTimers[tid];
+  const t=tasks.find(x=>x.id===tid);
+  if(t){t.reminder=null;save();}
+}
+function initReminders(){
+  const now=Date.now();
+  tasks.filter(t=>t.status==='active'&&t.reminder?.at).forEach(t=>{
+    const ms=t.reminder.at-now;
+    if(ms>0){
+      remTimers[t.id]=setTimeout(()=>{
+        t.reminder=null;save();
+        const msg=`${me()}，「${t.title}」提醒到了！⏰`;
+        if('Notification' in window&&Notification.permission==='granted'){
+          new Notification('✦ Bubble Bar',{body:msg,icon:'assets/icon.png'});
+        }
+        mascot('sloth',msg);
+      },ms);
+    } else {
+      t.reminder=null;save(); // expired, clean up
+    }
+  });
+}
+
+/* ════════════════════════════════════════
+   IDLE TAUNT — sarcasm pool
+════════════════════════════════════════ */
+const TAUNTS=[
+  t=>`${me()}，「${t}」已经悬浮了好一阵了……气泡不会自己动的 🫧`,
+  t=>`提醒一下${me()}，「${t}」正在以沉默的方式抗议你的拖延`,
+  t=>`气泡日志 · 今日「${t}」纹丝不动，主人下落不明……`,
+  t=>`${me()}同学，「${t}」在默默看着你，没有评论，但眼神很复杂 👀`,
+  t=>`系统检测到「${t}」等待超时，${me()}你今天还算在线吗？`,
+  t=>`「${t}」说：好的，我再等等。（其实已经等了很久）`,
+  t=>`${me()}，你知道吗？「${t}」已经开始担心你了`,
+  t=>`好消息：「${t}」还在。坏消息：它在问${me()}你忘了它吗`,
+  t=>`${me()}，「${t}」还没完成，但我相信你只是在酝酿……吧 🐌`,
+  t=>`科学研究表明，气泡飘得越久越难处理。${me()}的「${t}」快撑不住了`,
+];
+function startIdleTaunt(){
+  setInterval(()=>{
+    const idle=Date.now()-lastActAt;
+    if(idle<2*3600000) return; // < 2 hours, skip
+    const active=tasks.filter(t=>t.status==='active');
+    if(!active.length) return;
+    // pick most urgent task
+    const pick=active.sort((a,b)=>(b.urgency??3)-(a.urgency??3))[0];
+    const fn=TAUNTS[Math.floor(Math.random()*TAUNTS.length)];
+    mascotTaunt(fn(pick.title));
+    // throttle: next check not before 90 min
+    lastActAt=Date.now()-90*60000;
+    localStorage.setItem('bb_lastact',lastActAt);
+  },30*60000); // check every 30 min
+}
+
+/* ════════════════════════════════════════
    MASCOT
 ════════════════════════════════════════ */
 let mt=null;
@@ -1146,8 +1429,18 @@ function mascot(who,msg){
   document.getElementById('m-e').textContent=m[who].e;
   document.getElementById('m-n').textContent=m[who].n;
   document.getElementById('m-t').textContent=msg;
-  const el=document.getElementById('mascot');el.classList.add('show');
+  const el=document.getElementById('mascot');
+  el.classList.remove('taunt');el.classList.add('show');
   mt=setTimeout(()=>el.classList.remove('show'),5000);
+}
+function mascotTaunt(msg){
+  clearTimeout(mt);
+  document.getElementById('m-e').textContent='😏';
+  document.getElementById('m-n').textContent='Bubble Bar · 抖机灵';
+  document.getElementById('m-t').textContent=msg;
+  const el=document.getElementById('mascot');
+  el.classList.add('show','taunt');
+  mt=setTimeout(()=>{el.classList.remove('show','taunt');},7000);
 }
 
 /* ════════════════════════════════════════
@@ -1435,6 +1728,9 @@ if(!tasks.length){
 }
 
 document.getElementById('task-input').addEventListener('keydown',e=>{if(e.key==='Enter') triggerAI();});
+if(userNick){const tag=document.getElementById('nick-tag');tag.textContent=userNick;tag.style.display='';}
+initReminders();
+startIdleTaunt();
 </script>
 </body>
 </html>
